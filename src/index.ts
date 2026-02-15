@@ -53,7 +53,7 @@ function buildSystemPrompt(): string {
 ## Capabilities
 - File operations (read, write, list) within allowed paths
 - Shell command execution (sandboxed)
-- Web search (DuckDuckGo)
+- Web search (SearXNG — local meta search engine)
 - Web browsing with headless Chromium (browse URLs, click, type, evaluate JS)
 - Long-term memory (save and recall facts across sessions)
 
