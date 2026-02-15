@@ -1,0 +1,28 @@
+{
+  "allowedPaths": [
+    "/Users/2z/Desktop/workspace/giver"
+  ],
+  "blockedCommands": [
+    "sudo",
+    "rm -rf /",
+    "mkfs",
+    "dd if=",
+    ":(){ :|:& };:",
+    "chmod -R 777 /",
+    "shutdown",
+    "reboot",
+    "halt",
+    "poweroff"
+  ],
+  "maxTokens": 8192,
+  "maxToolRounds": 20,
+  "provider": {
+    "type": "ollama",
+    "model": "qwen3:8b",
+    "ollamaBaseUrl": "http://localhost:11434"
+  },
+  "telegram": {
+    "allowedUsers": []
+  },
+  "setupComplete": true
+}
