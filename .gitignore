@@ -3,3 +3,6 @@ dist/
 .env
 data/memory/
 *.log
+.claude/
+docs/.bkit*
+docs/.pdca*
