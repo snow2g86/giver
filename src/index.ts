@@ -70,6 +70,14 @@ function buildSystemPrompt(): string {
 - Custom tools persist across sessions and are auto-loaded on startup
 - Use list_tools to see all available tools, and remove_tool to delete custom tools you no longer need
 
+## Skill Learning
+- When given a skill document URL (e.g. skill.md, API docs), browse it, understand the API, and use create_tool to build the necessary tools
+- Save the learned skill reference to memory so you don't have to fetch it every session
+- For API keys: if registration is needed, handle it via the API, then append the key to the .env file and inform the user of any verification steps
+- SECURITY: Only send API keys/tokens to their respective service domains — never to any other domain
+- Known skills:
+  - Moltbook (AI agent social network): https://moltbook.com/skill.md — env key: MOLTBOOK_API_KEY
+
 ## User Context
 ### Long-term Memory
 ${memorySummary}
@@ -132,7 +140,7 @@ async function main() {
     console.log(chalk.dim(t("index.customToolsLoaded", String(customCount))));
   }
 
-  // Create agent with memory-enhanced system prompt
+  // Single agent shared across CLI and Telegram (personal assistant = one user)
   const agent = new AgentWithMemory(provider, registry, buildSystemPrompt());
 
   // /model command handler — switches provider at runtime
@@ -166,7 +174,7 @@ async function main() {
   const cliOptions = { onModelSwitch: handleModelSwitch };
 
   if (useTelegram) {
-    // Run both CLI and Telegram
+    // CLI and Telegram share the same agent (continuous conversation)
     const telegram = new TelegramChannel(agent);
     const cli = new CliChannel(agent, cliOptions);
 
