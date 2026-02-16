@@ -3,6 +3,45 @@ import chalk from "chalk";
 import type { Channel } from "./channel.js";
 import type { Agent } from "../core/agent.js";
 import { t } from "../core/i18n.js";
+import type { PermissionPrompter, PermissionGrant } from "../core/types.js";
+
+function askQuestion(question: string): Promise<string> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  return new Promise((resolve) => {
+    rl.question(question, (answer) => {
+      rl.close();
+      resolve(answer.trim().toLowerCase());
+    });
+  });
+}
+
+export function createCliPrompter(): PermissionPrompter {
+  return {
+    async requestApproval(path: string): Promise<PermissionGrant> {
+      console.log("");
+      const allow = await askQuestion(
+        chalk.yellow(`  ${t("perm.requestAccess", path)}`)
+      );
+
+      if (allow !== "y" && allow !== "yes") {
+        console.log(chalk.red(`  ${t("perm.denied")}\n`));
+        return { granted: false, persistent: false };
+      }
+
+      const permanent = await askQuestion(
+        chalk.yellow(`  ${t("perm.savePermanent")}`)
+      );
+
+      const persistent = permanent === "y" || permanent === "yes";
+      const msg = persistent ? t("perm.grantedPermanent") : t("perm.grantedSession");
+      console.log(chalk.green(`  ${msg}\n`));
+      return { granted: true, persistent };
+    },
+  };
+}
 
 function getCommands(): { name: string; desc: string }[] {
   return [

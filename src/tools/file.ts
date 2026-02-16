@@ -3,7 +3,7 @@ import path from "node:path";
 import type { Tool } from "./base.js";
 import { PathGuard } from "../sandbox/path-guard.js";
 
-const pathGuard = new PathGuard();
+const pathGuard = PathGuard.getInstance();
 
 export const readFileTool: Tool = {
   name: "read_file",

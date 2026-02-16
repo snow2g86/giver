@@ -94,3 +94,14 @@ export interface UserPreferences {
   language?: string;
   [key: string]: string | undefined;
 }
+
+// --- Permission 타입 ---
+
+export interface PermissionGrant {
+  granted: boolean;
+  persistent: boolean;
+}
+
+export interface PermissionPrompter {
+  requestApproval(path: string): Promise<PermissionGrant>;
+}

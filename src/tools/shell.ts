@@ -4,7 +4,7 @@ import type { Tool } from "./base.js";
 import { PathGuard } from "../sandbox/path-guard.js";
 import { Permissions } from "../sandbox/permissions.js";
 
-const pathGuard = new PathGuard();
+const pathGuard = PathGuard.getInstance();
 const permissions = new Permissions();
 
 export const shellTool: Tool = {

@@ -14,8 +14,9 @@ import { createSelfUpdateTools } from "./tools/self-update.js";
 import { loadCustomTools } from "./tools/dynamic-loader.js";
 import { getPreferenceSummary } from "./memory/preferences.js";
 import { getRecentConversations, saveConversationEntry } from "./memory/conversation.js";
-import { CliChannel } from "./channels/cli.js";
-import { TelegramChannel } from "./channels/telegram.js";
+import { CliChannel, createCliPrompter } from "./channels/cli.js";
+import { TelegramChannel, createTelegramPrompter } from "./channels/telegram.js";
+import { PathGuard } from "./sandbox/path-guard.js";
 import type { AiProvider } from "./providers/provider.js";
 import { OllamaProvider } from "./providers/ollama.js";
 import { ClaudeCliProvider } from "./providers/claude-cli.js";
@@ -173,10 +174,19 @@ async function main() {
 
   const cliOptions = { onModelSwitch: handleModelSwitch };
 
+  const pathGuard = PathGuard.getInstance();
+
   if (useTelegram) {
     // CLI and Telegram share the same agent (continuous conversation)
     const telegram = new TelegramChannel(agent);
     const cli = new CliChannel(agent, cliOptions);
+
+    // Telegram 프롬프터 설정
+    const telegramPrompter = createTelegramPrompter(
+      telegram.getBot(),
+      () => telegram.getLastChatId()
+    );
+    pathGuard.setPrompter(telegramPrompter);
 
     // Start telegram in background
     telegram.start().catch((err) => {
@@ -186,7 +196,9 @@ async function main() {
     // CLI as main loop
     await cli.start();
   } else {
-    // CLI only
+    // CLI only — CLI 프롬프터 설정
+    pathGuard.setPrompter(createCliPrompter());
+
     const cli = new CliChannel(agent, cliOptions);
     await cli.start();
   }

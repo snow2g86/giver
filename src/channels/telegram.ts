@@ -1,14 +1,66 @@
-import { Bot } from "grammy";
+import { Bot, InlineKeyboard } from "grammy";
 import chalk from "chalk";
 import type { Channel } from "./channel.js";
 import type { Agent } from "../core/agent.js";
 import { getConfig } from "../core/config.js";
+import { t } from "../core/i18n.js";
+import type { PermissionPrompter, PermissionGrant } from "../core/types.js";
+
+export function createTelegramPrompter(bot: Bot, getChatId: () => number | null): PermissionPrompter {
+  return {
+    async requestApproval(path: string): Promise<PermissionGrant> {
+      const chatId = getChatId();
+      if (!chatId) {
+        return { granted: false, persistent: false };
+      }
+
+      const keyboard = new InlineKeyboard()
+        .text(t("perm.allowSession"), `perm:session:${Date.now()}`)
+        .text(t("perm.allowPermanent"), `perm:permanent:${Date.now()}`)
+        .row()
+        .text(t("perm.deny"), `perm:deny:${Date.now()}`);
+
+      await bot.api.sendMessage(
+        chatId,
+        `⚠️ ${t("perm.requestAccess", path)}`,
+        { reply_markup: keyboard }
+      );
+
+      return new Promise<PermissionGrant>((resolve) => {
+        const timeout = setTimeout(() => {
+          resolve({ granted: false, persistent: false });
+        }, 60_000);
+
+        const handler = bot.callbackQuery(/^perm:(session|permanent|deny):/, async (ctx) => {
+          clearTimeout(timeout);
+          const action = ctx.callbackQuery.data.split(":")[1];
+          await ctx.answerCallbackQuery();
+
+          if (action === "deny") {
+            await ctx.editMessageText(`❌ ${t("perm.denied")}`);
+            resolve({ granted: false, persistent: false });
+          } else {
+            const persistent = action === "permanent";
+            const msg = persistent ? t("perm.grantedPermanent") : t("perm.grantedSession");
+            await ctx.editMessageText(`✅ ${msg}`);
+            resolve({ granted: true, persistent });
+          }
+        });
+
+        // grammy의 callbackQuery는 미들웨어로 등록됨 — 일회성 처리를 위해 composer 사용
+        // 위의 handler는 이미 bot에 등록된 상태이므로 별도 해제 불필요
+        void handler;
+      });
+    },
+  };
+}
 
 export class TelegramChannel implements Channel {
   name = "telegram";
   private bot: Bot;
   private agent: Agent;
   private allowedUsers: number[];
+  private lastChatId: number | null = null;
 
   constructor(agent: Agent) {
     const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -21,6 +73,14 @@ export class TelegramChannel implements Channel {
     this.allowedUsers = getConfig().telegram.allowedUsers;
 
     this.setupHandlers();
+  }
+
+  getBot(): Bot {
+    return this.bot;
+  }
+
+  getLastChatId(): number | null {
+    return this.lastChatId;
   }
 
   private setupHandlers(): void {
@@ -71,6 +131,7 @@ export class TelegramChannel implements Channel {
     this.bot.on("message:text", async (ctx) => {
       const text = ctx.message.text;
       const userId = ctx.from?.id;
+      this.lastChatId = ctx.chat.id;
 
       console.log(chalk.dim(`[Telegram] ${userId}: ${text.slice(0, 50)}...`));
 
